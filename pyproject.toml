@@ -3,4 +3,35 @@ name = "drm"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "alembic>=1.15.1",
+    "fastapi>=0.115.11",
+    "sqlalchemy>=2.0.39",
+    "uvicorn>=0.34.0",
+]
+
+
+[dependency-groups]
+dev = [
+    "autoflake>=2.3.1",
+    "bandit>=1.8.3",
+    "black>=25.1.0",
+    "flake8>=7.1.2",
+    "flake8-cognitive-complexity>=0.1.0",
+    "isort>=6.0.1",
+    "mypy>=1.15.0",
+]
+
+
+
+[tool.isort]
+profile = "black"
+py_version = 310
+skip = [".gitignore", ".dockerignore"]
+extend_skip = [".md", ".json"]
+skip_glob = ["docs/*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
