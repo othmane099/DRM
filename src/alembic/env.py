@@ -24,7 +24,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-config.set_main_option("sqlalchemy.url",  "sqlite+aiosqlite:///./db.sqlite3")
+config.set_main_option("sqlalchemy.url",  "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres")
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
