@@ -8,7 +8,9 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
+
 sys.path.append(f"{os.getcwd()}/src")
+import settings
 from models import Base
 
 # this is the Alembic Config object, which provides
@@ -24,7 +26,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-config.set_main_option("sqlalchemy.url",  "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres")
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

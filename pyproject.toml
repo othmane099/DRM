@@ -6,9 +6,13 @@ requires-python = ">=3.10"
 dependencies = [
     "alembic>=1.15.1",
     "asyncpg>=0.30.0",
+    "bcrypt>=4.3.0",
     "dependency-injector>=4.46.0",
     "fastapi>=0.115.11",
     "psycopg2-binary>=2.9.10",
+    "pydantic[email]>=2.10.6",
+    "pyjwt>=2.10.1",
+    "python-multipart>=0.0.20",
     "sqlalchemy>=2.0.39",
     "uvicorn>=0.34.0",
 ]

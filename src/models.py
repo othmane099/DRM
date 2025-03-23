@@ -29,10 +29,11 @@ class User(BaseEntity):
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
     phone_number = Column(String, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
-    is_owner = Column(Boolean, default=False, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
     avatar = Column(String, nullable=True)
 
     role = relationship("Role", back_populates="users")
@@ -70,7 +71,7 @@ class Permission(BaseEntity):
 class Category(BaseEntity):
     __tablename__ = "categories"
 
-    title = Column(String(255), nullable=True)
+    title = Column(String(255), nullable=True, unique=True)
     parent_id = Column(Integer, default=0)
     sub_categories = relationship("SubCategory", back_populates="category")
     documents = relationship("Document", back_populates="category")
@@ -79,7 +80,7 @@ class Category(BaseEntity):
 class SubCategory(BaseEntity):
     __tablename__ = "sub_categories"
 
-    title = Column(String(255), nullable=True)
+    title = Column(String(255), nullable=True, unique=True)
     category_id = Column(Integer, ForeignKey("categories.id"))
     parent_id = Column(Integer, default=0)
     category = relationship("Category", back_populates="sub_categories")
