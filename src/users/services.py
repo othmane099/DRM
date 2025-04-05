@@ -4,7 +4,7 @@ from dependency_injector.wiring import Provide, inject
 from auth.schemas import TokenUserPayload
 from users.schemas import RoleCreate, UserCreate
 from users.uow import PermissionUnitOfWork, RoleUnitOfWork, UserUnitOfWork
-from utils import cpu_bound_task
+from utils.utils import cpu_bound_task
 
 
 class UserService:
