@@ -9,7 +9,7 @@ from starlette import status
 from auth.exceptions import LoginFailed
 from auth.schemas import LoggedInUser, LoginRequest, TokenUserPayload
 from users.services import UserService
-from utils import cpu_bound_task
+from utils.utils import cpu_bound_task
 
 
 class AuthService:
