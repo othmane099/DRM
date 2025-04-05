@@ -14,7 +14,7 @@ class DocumentCreate(BaseModel):
 
 class DocumentUpdate(BaseModel):
     name: Optional[str] = None
-    category_id: Optional[str] = None
+    category_id: Optional[int] = None
     sub_category_id: Optional[int] = None
     description: Optional[str] = None
     tags: Optional[list[str]] = None
