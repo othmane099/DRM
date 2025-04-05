@@ -38,6 +38,7 @@ class User(BaseEntity):
 
     role = relationship("Role", back_populates="users")
     documents = relationship("Document", back_populates="user")
+    version_histories = relationship("VersionHistory", back_populates="user")
 
 
 role_permission = Table(
@@ -108,3 +109,16 @@ class Document(BaseEntity):
     category = relationship("Category", back_populates="documents")
     sub_category = relationship("SubCategory", back_populates="documents")
     user = relationship("User", back_populates="documents")
+    version_histories = relationship("VersionHistory", back_populates="document")
+
+
+class VersionHistory(BaseEntity):
+    __tablename__ = "version_histories"
+
+    document_id = Column(Integer, ForeignKey("documents.id"), nullable=False)
+    file_name = Column(String, nullable=True)
+    current_version = Column(Boolean, default=True, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    user = relationship("User", back_populates="version_histories")
+    document = relationship("Document", back_populates="version_histories")

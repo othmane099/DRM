@@ -6,6 +6,9 @@ CAN_CREATE_SUB_CATEGORY: Final[str] = "create_sub_category"
 CAN_CREATE_TAG: Final[str] = "create_tag"
 CAN_CREATE_DOCUMENT: Final[str] = "create_document"
 CAN_CREATE_MY_DOCUMENT: Final[str] = "create_my_document"
+CAN_MANAGE_DOCUMENT_HISTORY: Final[str] = "manage_document_history"
+CAN_MANAGE_VERSION: Final[str] = "manage_version"
+CAN_CREATE_VERSION: Final[str] = "create_version"
 
 PERMISSIONS: Final[list[dict[str, str]]] = [
     {"name": "manage_user", "label": "Manage user"},
@@ -22,7 +25,7 @@ PERMISSIONS: Final[list[dict[str, str]]] = [
     {"name": "delete_my_document", "label": "Delete my document"},
     {"name": "show_my_document", "label": "Show my document"},
     {"name": CAN_CREATE_MY_DOCUMENT, "label": "Create my document"},
-    {"name": "manage_document_history", "label": "Manage document history"},
+    {"name": CAN_MANAGE_DOCUMENT_HISTORY, "label": "Manage document history"},
     {"name": "download_document", "label": "Download document"},
     {"name": "preview_document", "label": "Preview document"},
     {"name": "manage_share_document", "label": "Manage share document"},
@@ -36,8 +39,8 @@ PERMISSIONS: Final[list[dict[str, str]]] = [
     {"name": "manage_my_reminder", "label": "Manage my reminder"},
     {"name": "manage_comment", "label": "Manage comment"},
     {"name": "create_comment", "label": "Create comment"},
-    {"name": "manage_version", "label": "Manage version"},
-    {"name": "create_version", "label": "Create version"},
+    {"name": CAN_MANAGE_VERSION, "label": "Manage version"},
+    {"name": CAN_CREATE_VERSION, "label": "Create version"},
     {"name": "manage_email_settings", "label": "Manage email settings"},
     {"name": "manage_mail", "label": "Manage mail"},
     {"name": "send_mail", "label": "Send mail"},
