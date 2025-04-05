@@ -13,7 +13,7 @@ class TagRepository:
 
     async def get_tags(self, page: int, size: int) -> list[Tag]:
         result = await self.session.scalars(
-            select(Tag).offset(page).limit(size).order_by(Tag.title)
+            select(Tag).offset((page - 1) * size).limit(size).order_by(Tag.title)
         )
         return list(result.all())
 
