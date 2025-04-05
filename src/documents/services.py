@@ -152,7 +152,7 @@ class DocumentService:
             document_history_create = DocumentHistoryCreate(
                 document_id=document_id,
                 action="Document Delete",
-                description=f"Document delete {document_name} deleted by {current_user.email}",
+                description=f"Document {document_name} deleted by {current_user.email}",
                 action_by=current_user.id,
             )
             await self.uow.document_history_repository.create_document_history(
