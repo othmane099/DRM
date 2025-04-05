@@ -11,6 +11,10 @@ class TagService:
     def __init__(self, uow: TagUnitOfWork = Provide["tag_uow"]):
         self.uow = uow
 
+    async def count_tags(self) -> int:
+        async with self.uow:
+            return await self.uow.repository.count_tags()
+
     async def get_tags(self, page: int, size: int) -> list[Tag]:
         async with self.uow:
             return await self.uow.repository.get_tags(page, size)

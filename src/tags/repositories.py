@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Tag
@@ -29,3 +29,7 @@ class TagRepository:
 
     async def delete_tag(self, tag_id: int):
         await self.session.execute(delete(Tag).where(Tag.id == tag_id))
+
+    async def count_tags(self) -> int:
+        result = await self.session.execute(select(func.count()).select_from(Tag))
+        return result.scalar_one()

@@ -31,7 +31,7 @@ async def get_tags(
         tags = await tag_service.get_tags(
             pagination_params.page, pagination_params.size
         )
-        total = len(tags)
+        total = await tag_service.count_tags()
         return TagPaginationResponse(
             total=total,
             current=pagination_params.page,
