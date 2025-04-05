@@ -1,18 +1,47 @@
 from typing import Optional
 
-from sqlalchemy import insert, select
+from sqlalchemy import delete, desc, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Document, VersionHistory
+from models import Document, DocumentHistory, VersionHistory
 
 
 class DocumentRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def get_document_name(self, document_id: int) -> Optional[str]:
+        result = await self.session.scalars(
+            select(Document.name).where(Document.id == document_id)
+        )
+        return result.first()
+
     async def create_document(self, data: dict) -> Optional[Document]:
         stmt = insert(Document).values(**data).returning(Document)
         result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def delete_document(self, document_id: int):
+        await self.session.execute(delete(Document).where(Document.id == document_id))
+
+    async def get_documents_by_user(self, user_id: int) -> list[Document]:
+        result = await self.session.scalars(
+            select(Document)
+            .where(Document.user_id == user_id)
+            .order_by(desc(Document.created_at))
+        )
+        return list(result.all())
+
+    async def update_document(self, document_id: int, data: dict) -> Optional[Document]:
+        stmt = (
+            update(Document)
+            .where(Document.id == document_id)
+            .values(**data)
+            .returning(Document)
+        )
+
+        result = await self.session.execute(stmt)
+        await self.session.flush()
         return result.scalar_one_or_none()
 
 
@@ -27,7 +56,9 @@ class VersionHistoryRepository:
 
     async def get_versions_by_document(self, document_id: int) -> list[VersionHistory]:
         result = await self.session.scalars(
-            select(VersionHistory).where(VersionHistory.document_id == document_id)
+            select(VersionHistory)
+            .where(VersionHistory.document_id == document_id)
+            .order_by(desc(VersionHistory.created_at))
         )
         return list(result.all())
 
@@ -41,3 +72,23 @@ class VersionHistoryRepository:
             )
         )
         return result.first()
+
+
+class DocumentHistoryRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create_document_history(self, data: dict) -> Optional[DocumentHistory]:
+        stmt = insert(DocumentHistory).values(**data).returning(DocumentHistory)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_document_history_by_user(self, user_id: int) -> list[DocumentHistory]:
+        result = await self.session.scalars(
+            select(DocumentHistory)
+            .where(
+                DocumentHistory.action_by == user_id,
+            )
+            .order_by(desc(DocumentHistory.created_at))
+        )
+        return list(result.all())

@@ -6,16 +6,35 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
-from documents.schemas import DocumentCreate, VersionHistoryCreate
+from documents.schemas import DocumentCreate, DocumentUpdate, VersionHistoryCreate
 from documents.services import DocumentService
 from users.permissions import (
     CAN_CREATE_DOCUMENT,
     CAN_CREATE_MY_DOCUMENT,
     CAN_CREATE_VERSION,
+    CAN_DELETE_DOCUMENT,
+    CAN_EDIT_DOCUMENT,
+    CAN_MANAGE_DOCUMENT_HISTORY,
+    CAN_MANAGE_MY_DOCUMENT,
     CAN_MANAGE_VERSION,
 )
 
 documents_router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@documents_router.put("/{document_id}")
+@inject
+async def update_document(
+    document_id: int,
+    document_update: DocumentUpdate,
+    current_user: TokenUserPayload = Depends(get_user),
+    document_service: DocumentService = Depends(Provide["document_service"]),
+):
+
+    if helpers.is_authorized(current_user, CAN_EDIT_DOCUMENT, CAN_CREATE_MY_DOCUMENT):
+        return await document_service.update_document(
+            current_user, document_id, document_update
+        )
 
 
 @documents_router.post("")
@@ -65,6 +84,37 @@ async def create_document_version(
 ):
     if helpers.is_authorized(current_user, CAN_CREATE_VERSION):
         version_create = VersionHistoryCreate(
-            document_id=document_id, created_by=current_user.id, file_name="Unknown"
+            document_id=document_id, created_by=current_user.id, document_name="Unknown"
         )
         return await document_service.create_document_version(version_create, file)
+
+
+@documents_router.get("/history")
+@inject
+async def get_document_history(
+    current_user: TokenUserPayload = Depends(get_user),
+    document_service: DocumentService = Depends(Provide["document_service"]),
+):
+    if helpers.is_authorized(current_user, CAN_MANAGE_DOCUMENT_HISTORY):
+        return await document_service.get_document_history_by_user(current_user.id)
+
+
+@documents_router.delete("/{document_id}")
+@inject
+async def delete_document(
+    document_id: int,
+    current_user: TokenUserPayload = Depends(get_user),
+    document_service: DocumentService = Depends(Provide["document_service"]),
+):
+    if helpers.is_authorized(current_user, CAN_DELETE_DOCUMENT):
+        return await document_service.delete_document(current_user, document_id)
+
+
+@documents_router.get("/my")
+@inject
+async def get_my_documents(
+    current_user: TokenUserPayload = Depends(get_user),
+    document_service: DocumentService = Depends(Provide["document_service"]),
+):
+    if helpers.is_authorized(current_user, CAN_MANAGE_MY_DOCUMENT):
+        return await document_service.get_documents_by_user(current_user.id)
