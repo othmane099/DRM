@@ -6,7 +6,7 @@ from dependency_injector.wiring import Provide
 from fastapi import UploadFile
 
 from auth.schemas import TokenUserPayload
-from documents.schemas import DocumentCreate
+from documents.schemas import DocumentCreate, VersionHistoryCreate
 from documents.uow import DocumentUnitOfWork
 
 
@@ -43,5 +43,51 @@ class DocumentService:
                 with open(file_path, "wb") as f:
                     content = await file.read()
                     f.write(content)
+
+                version_create = VersionHistoryCreate(
+                    document_id=created_document.id,
+                    file_name=document_file_name,
+                    version="1",
+                    created_by=current_user.id,
+                )
+                await self.uow.version_history_repository.create_version_history(
+                    version_create.model_dump()
+                )
             await self.uow.commit()
             return created_document
+
+    async def get_document_versions(self, document_id):
+        async with self.uow:
+            return await self.uow.version_history_repository.get_versions_by_document(
+                document_id
+            )
+
+    async def create_document_version(
+        self, version_create: VersionHistoryCreate, file: UploadFile
+    ):
+        async with self.uow:
+            last_version = await self.uow.version_history_repository.get_current_version_by_document(
+                version_create.document_id
+            )
+            if last_version:
+                last_version.current_version = False
+
+            filename = file.filename
+            file_extension = pathlib.Path(filename).suffix
+            document_file_name = f"{int(time.time())}{file_extension}"
+
+            upload_dir = os.path.join("upload", "documents")
+            os.makedirs(upload_dir, exist_ok=True)
+
+            file_path = os.path.join(upload_dir, document_file_name)
+
+            with open(file_path, "wb") as f:
+                content = await file.read()
+                f.write(content)
+            data = version_create.model_dump()
+            data["file_name"] = document_file_name
+            version = await self.uow.version_history_repository.create_version_history(
+                data
+            )
+            await self.uow.commit()
+            return version
