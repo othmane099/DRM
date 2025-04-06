@@ -8,13 +8,14 @@ from fastapi import UploadFile
 
 from auth.schemas import TokenUserPayload
 from documents.schemas import (
+    CommentCreate,
     DocumentCreate,
     DocumentHistoryCreate,
     DocumentUpdate,
     VersionHistoryCreate,
 )
 from documents.uow import DocumentUnitOfWork
-from models import Document
+from models import Document, DocumentComment
 
 
 class DocumentService:
@@ -166,3 +167,19 @@ class DocumentService:
     async def get_first_document_by_subcategory(self, sc_id: int) -> Optional[Document]:
         async with self.uow:
             return await self.uow.repository.get_first_document_by_subcategory(sc_id)
+
+    async def get_document_comments(self, document_id: int) -> list[DocumentComment]:
+        async with self.uow:
+            return await self.uow.document_comment_repository.get_document_comments(
+                document_id
+            )
+
+    async def create_document_comment(self, comment_create: CommentCreate):
+        async with self.uow:
+            comment = (
+                await self.uow.document_comment_repository.create_document_comment(
+                    comment_create.model_dump()
+                )
+            )
+            await self.uow.commit()
+            return comment

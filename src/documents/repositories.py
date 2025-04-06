@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import delete, desc, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Document, DocumentHistory, VersionHistory
+from models import Document, DocumentComment, DocumentHistory, VersionHistory
 
 
 class DocumentRepository:
@@ -98,3 +98,22 @@ class DocumentHistoryRepository:
             .order_by(desc(DocumentHistory.created_at))
         )
         return list(result.all())
+
+
+class DocumentCommentRepository:
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_document_comments(self, document_id: int) -> list[DocumentComment]:
+        result = await self.session.scalars(
+            select(DocumentComment)
+            .where(DocumentComment.document_id == document_id)
+            .order_by(DocumentComment.created_at)
+        )
+        return list(result.all())
+
+    async def create_document_comment(self, data: dict) -> Optional[DocumentComment]:
+        stmt = insert(DocumentComment).values(**data).returning(DocumentComment)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
