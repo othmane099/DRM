@@ -29,10 +29,6 @@ class DocumentService:
         file: UploadFile,
     ):
         data = document_create.model_dump()
-        # TODO replace 1 by parent_id
-        data["parent_id"] = (
-            current_user.id if current_user.is_superuser or current_user.is_admin else 1
-        )
         data["tags"] = ",".join(data["tags"]) if data["tags"] else ""
         async with self.uow:
             created_document = await self.uow.repository.create_document(data)
