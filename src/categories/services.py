@@ -34,7 +34,6 @@ class CategoryService:
         self, current_user: TokenUserPayload, category_create: CategoryCreate
     ) -> Category:
         data = category_create.model_dump()
-        data["parent_id"] = current_user.id
         async with self.uow:
             category = await self.uow.repository.create_category(data)
             await self.uow.commit()
@@ -86,7 +85,6 @@ class SubCategoryService:
     ) -> SubCategory:
 
         data = sub_category_create.model_dump()
-        data["parent_id"] = current_user.id
         async with self.uow:
             sub_category = await self.uow.repository.create_sub_category(data)
             await self.uow.commit()

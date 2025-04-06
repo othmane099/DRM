@@ -23,7 +23,6 @@ class TagService:
         self, current_user: TokenUserPayload, tag_create: TagCreate
     ) -> Tag:
         data = tag_create.model_dump()
-        data["parent_id"] = current_user.id
         async with self.uow:
             tag = await self.uow.repository.create_tag(data)
             await self.uow.commit()

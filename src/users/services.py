@@ -22,7 +22,6 @@ class UserService:
             )
         ).decode()
         data = user_create.model_dump()
-        data["parent_id"] = current_user.id
         data["is_active"] = True
         async with self.uow:
             created_user = await self.uow.repository.create_user(data)
