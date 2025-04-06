@@ -32,3 +32,13 @@ class DocumentHistoryCreate(BaseModel):
     action_by: int
     action: Optional[str] = None
     description: Optional[str] = None
+
+
+class CommentCreateRequest(BaseModel):
+    comment: str
+
+
+class CommentCreate(BaseModel):
+    document_id: int
+    user_id: int
+    comment: str

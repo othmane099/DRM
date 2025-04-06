@@ -6,14 +6,22 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
-from documents.schemas import DocumentCreate, DocumentUpdate, VersionHistoryCreate
+from documents.schemas import (
+    CommentCreate,
+    CommentCreateRequest,
+    DocumentCreate,
+    DocumentUpdate,
+    VersionHistoryCreate,
+)
 from documents.services import DocumentService
 from users.permissions import (
+    CAN_CREATE_COMMENT,
     CAN_CREATE_DOCUMENT,
     CAN_CREATE_MY_DOCUMENT,
     CAN_CREATE_VERSION,
     CAN_DELETE_DOCUMENT,
     CAN_EDIT_DOCUMENT,
+    CAN_MANAGE_COMMENT,
     CAN_MANAGE_DOCUMENT_HISTORY,
     CAN_MANAGE_MY_DOCUMENT,
     CAN_MANAGE_VERSION,
@@ -118,3 +126,31 @@ async def get_my_documents(
 ):
     if helpers.is_authorized(current_user, CAN_MANAGE_MY_DOCUMENT):
         return await document_service.get_documents_by_user(current_user.id)
+
+
+@documents_router.get("/{document_id}/comments")
+@inject
+async def get_document_comments(
+    document_id: int,
+    current_user: TokenUserPayload = Depends(get_user),
+    document_service: DocumentService = Depends(Provide["document_service"]),
+):
+    if helpers.is_authorized(current_user, CAN_MANAGE_COMMENT):
+        return await document_service.get_document_comments(document_id)
+
+
+@documents_router.post("/{document_id}/comments")
+@inject
+async def create_document_comment(
+    document_id: int,
+    comment_create_req: CommentCreateRequest,
+    current_user: TokenUserPayload = Depends(get_user),
+    document_service: DocumentService = Depends(Provide["document_service"]),
+):
+    if helpers.is_authorized(current_user, CAN_CREATE_COMMENT):
+        comment_create = CommentCreate(
+            comment=comment_create_req.comment,
+            document_id=document_id,
+            user_id=current_user.id,
+        )
+        return await document_service.create_document_comment(comment_create)

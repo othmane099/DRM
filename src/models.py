@@ -39,6 +39,7 @@ class User(BaseEntity):
     documents = relationship("Document", back_populates="user")
     version_histories = relationship("VersionHistory", back_populates="user")
     document_histories = relationship("DocumentHistory", back_populates="user")
+    document_comments = relationship("DocumentComment", back_populates="user")
 
 
 role_permission = Table(
@@ -107,6 +108,7 @@ class Document(BaseEntity):
     user = relationship("User", back_populates="documents")
     version_histories = relationship("VersionHistory", back_populates="document")
     document_histories = relationship("DocumentHistory", back_populates="document")
+    document_comments = relationship("DocumentComment", back_populates="document")
 
 
 class VersionHistory(BaseEntity):
@@ -135,3 +137,16 @@ class DocumentHistory(BaseEntity):
 
     user = relationship("User", back_populates="document_histories")
     document = relationship("Document", back_populates="document_histories")
+
+
+class DocumentComment(BaseEntity):
+    __tablename__ = "document_comments"
+
+    document_id = Column(
+        Integer, ForeignKey("documents.id", ondelete="SET NULL"), nullable=True
+    )
+    comment = Column(String, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    user = relationship("User", back_populates="document_comments")
+    document = relationship("Document", back_populates="document_comments")
