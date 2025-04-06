@@ -10,6 +10,10 @@ class CategoryCreate(BaseModel):
     title: str
 
 
+class CategoryUpdate(BaseModel):
+    title: str
+
+
 class CategoryResponse(BaseModel):
     id: int
     title: str
@@ -17,6 +21,10 @@ class CategoryResponse(BaseModel):
     updated_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class CategoryPaginationResponse(PaginationResponse):
+    data: list[CategoryResponse]
 
 
 class SubCategoryCreate(BaseModel):
