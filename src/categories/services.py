@@ -1,8 +1,11 @@
 from dependency_injector.wiring import Provide
+from fastapi import HTTPException
+from starlette import status
 
 from auth.schemas import TokenUserPayload
-from categories.schemas import CategoryCreate, SubCategoryCreate
+from categories.schemas import CategoryCreate, SubCategoryCreate, SubCategoryUpdate
 from categories.uow import CategoryUnitOfWork, SubCategoryUnitOfWork
+from documents.services import DocumentService
 from models import Category, SubCategory
 
 
@@ -24,8 +27,21 @@ class CategoryService:
 
 class SubCategoryService:
 
-    def __init__(self, uow: SubCategoryUnitOfWork = Provide["sub_category_uow"]):
+    def __init__(
+        self,
+        uow: SubCategoryUnitOfWork = Provide["sub_category_uow"],
+        document_service: DocumentService = Provide["document_service"],
+    ):
         self.uow = uow
+        self.document_service = document_service
+
+    async def count_sub_categories(self) -> int:
+        async with self.uow:
+            return await self.uow.repository.count_sub_categories()
+
+    async def get_sub_categories(self, page: int, size: int) -> list[SubCategory]:
+        async with self.uow:
+            return await self.uow.repository.get_sub_categories(page, size)
 
     async def create_sub_category(
         self, current_user: TokenUserPayload, sub_category_create: SubCategoryCreate
@@ -37,3 +53,25 @@ class SubCategoryService:
             sub_category = await self.uow.repository.create_sub_category(data)
             await self.uow.commit()
             return sub_category
+
+    async def update_sub_category(
+        self, sc_id: int, sc_update: SubCategoryUpdate
+    ) -> SubCategory:
+        async with self.uow:
+            data = {k: v for k, v in sc_update.model_dump().items() if v is not None}
+            sc = await self.uow.repository.update_sub_category(sc_id, data)
+            await self.uow.commit()
+            return sc
+
+    async def delete_sub_category(self, sc_id: int):
+        any_document = await self.document_service.get_first_document_by_subcategory(
+            sc_id
+        )
+        if any_document:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Cannot delete sub-category with ID {sc_id} because it is used by at least one document",
+            )
+        async with self.uow:
+            await self.uow.repository.delete_sub_category(sc_id)
+            await self.uow.commit()

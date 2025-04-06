@@ -44,6 +44,12 @@ class DocumentRepository:
         await self.session.flush()
         return result.scalar_one_or_none()
 
+    async def get_first_document_by_subcategory(self, sc_id: int) -> Optional[Document]:
+        result = await self.session.scalars(
+            select(Document).where(Document.sub_category_id == sc_id)
+        )
+        return result.first()
+
 
 class VersionHistoryRepository:
     def __init__(self, session: AsyncSession):

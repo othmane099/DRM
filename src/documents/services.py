@@ -1,6 +1,7 @@
 import os
 import pathlib
 import time
+from typing import Optional
 
 from dependency_injector.wiring import Provide
 from fastapi import UploadFile
@@ -13,6 +14,7 @@ from documents.schemas import (
     VersionHistoryCreate,
 )
 from documents.uow import DocumentUnitOfWork
+from models import Document
 
 
 class DocumentService:
@@ -164,3 +166,7 @@ class DocumentService:
     async def get_documents_by_user(self, user_id: int):
         async with self.uow:
             return await self.uow.repository.get_documents_by_user(user_id)
+
+    async def get_first_document_by_subcategory(self, sc_id: int) -> Optional[Document]:
+        async with self.uow:
+            return await self.uow.repository.get_first_document_by_subcategory(sc_id)

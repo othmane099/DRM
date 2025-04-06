@@ -52,6 +52,11 @@ class Container(containers.DeclarativeContainer):
 
     auth_service = providers.Factory(AuthService, user_service=user_service)
 
+    document_uow = providers.Factory(
+        DocumentUnitOfWork, session_factory=DEFAULT_SESSION_FACTORY
+    )
+    document_service = providers.Factory(DocumentService, uow=document_uow)
+
     category_uow = providers.Factory(
         CategoryUnitOfWork, session_factory=DEFAULT_SESSION_FACTORY
     )
@@ -60,12 +65,9 @@ class Container(containers.DeclarativeContainer):
     sub_category_uow = providers.Factory(
         SubCategoryUnitOfWork, session_factory=DEFAULT_SESSION_FACTORY
     )
-    sub_category_service = providers.Factory(SubCategoryService, uow=sub_category_uow)
+    sub_category_service = providers.Factory(
+        SubCategoryService, uow=sub_category_uow, document_service=document_service
+    )
 
     tag_uow = providers.Factory(TagUnitOfWork, session_factory=DEFAULT_SESSION_FACTORY)
     tag_service = providers.Factory(TagService, uow=tag_uow)
-
-    document_uow = providers.Factory(
-        DocumentUnitOfWork, session_factory=DEFAULT_SESSION_FACTORY
-    )
-    document_service = providers.Factory(DocumentService, uow=document_uow)
