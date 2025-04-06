@@ -46,7 +46,7 @@ async def get_categories(
             pagination_params.page, pagination_params.size
         )
         total = await category_service.count_categories()
-        return SCPaginationResponse(
+        return CategoryPaginationResponse(
             total=total,
             current=pagination_params.page,
             size=pagination_params.size,
