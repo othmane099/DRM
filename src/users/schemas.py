@@ -38,3 +38,7 @@ class UserResponse(BaseModel):
 class RoleCreate(BaseModel):
     name: str
     permissions: conlist(str, min_length=1)
+
+
+class RoleUpdate(RoleCreate):
+    pass

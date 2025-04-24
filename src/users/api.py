@@ -7,7 +7,7 @@ from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
 from users.permissions import CAN_CREATE_USER
-from users.schemas import RoleCreate, UserCreate, UserResponse
+from users.schemas import RoleCreate, RoleUpdate, UserCreate, UserResponse
 from users.services import PermissionService, RoleService, UserService
 
 users_router = APIRouter(prefix="/users", tags=["users"])
@@ -71,5 +71,28 @@ async def delete_role(
                 raise HTTPException(
                     status_code=409,
                     detail="Cannot delete role because it is assigned to one or more users.",
+                )
+    return None
+
+
+@users_router.put("/roles/{role_id}")
+@inject
+async def update_role(
+    role_id: int,
+    role_update: RoleUpdate,
+    role_service: RoleService = Depends(Provide["role_service"]),
+    current_user: TokenUserPayload = Depends(get_user),
+):
+
+    if helpers.is_authorized(current_user, None):
+        try:
+            return await role_service.update_role(role_id, role_update)
+        except IntegrityError as e:
+            if "asyncpg.exceptions.UniqueViolationError" in str(
+                e.orig
+            ) and "roles_name_key" in str(e.orig):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Role name already exists.",
                 )
     return None

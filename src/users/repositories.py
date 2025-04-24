@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -52,8 +52,28 @@ class RoleRepository:
             stmt = insert(role_permission).values(values)
             await self.session.execute(stmt)
 
+    async def remove_all_permissions_from_role(self, role_id: int):
+        from models import role_permission
+
+        stmt = delete(role_permission).where(role_permission.c.role_id == role_id)
+        await self.session.execute(stmt)
+        await self.session.flush()
+
     async def delete_role(self, role_id: int):
         await self.session.execute(delete(Role).where(Role.id == role_id))
+
+    async def update_role(
+        self, role_id: int, role_update: RoleCreate
+    ) -> Optional[Role]:
+        stmt = (
+            update(Role)
+            .where(Role.id == role_id)
+            .values(**role_update.model_dump(exclude={"permissions"}))
+            .returning(Role)
+        )
+        result = await self.session.execute(stmt)
+        await self.session.flush()
+        return result.scalar_one_or_none()
 
 
 class PermissionRepository:
