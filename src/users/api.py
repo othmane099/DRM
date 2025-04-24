@@ -1,5 +1,7 @@
+from typing import Annotated
+
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from starlette import status
 
@@ -7,8 +9,15 @@ from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
 from users.permissions import CAN_CREATE_USER
-from users.schemas import RoleCreate, RoleUpdate, UserCreate, UserResponse
+from users.schemas import (
+    RoleCreate,
+    RolePaginationResponse,
+    RoleUpdate,
+    UserCreate,
+    UserResponse,
+)
 from users.services import PermissionService, RoleService, UserService
+from utils.schemas import PaginationParams
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 
@@ -31,6 +40,27 @@ async def get_permissions(
     permission_service: PermissionService = Depends(Provide["permission_service"]),
 ):
     return await permission_service.get_permissions()
+
+
+@users_router.get("/roles")
+@inject
+async def get_roles(
+    pagination_params: Annotated[PaginationParams, Query()],
+    current_user: TokenUserPayload = Depends(get_user),
+    role_service: RoleService = Depends(Provide["role_service"]),
+):
+    if helpers.is_authorized(current_user, None):
+        roles = await role_service.get_roles(
+            pagination_params.page, pagination_params.size
+        )
+        total = await role_service.count_roles()
+        return RolePaginationResponse(
+            total=total,
+            current=pagination_params.page,
+            size=pagination_params.size,
+            data=roles,
+        )
+    return None
 
 
 @users_router.post("/roles")

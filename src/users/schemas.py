@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, conlist
 
 from models import User
+from utils.schemas import PaginationResponse
 
 
 class UserCreate(BaseModel):
@@ -42,3 +43,14 @@ class RoleCreate(BaseModel):
 
 class RoleUpdate(RoleCreate):
     pass
+
+
+class RoleResponse(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RolePaginationResponse(PaginationResponse):
+    data: list[RoleResponse]

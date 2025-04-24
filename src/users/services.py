@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from starlette import status
 
 from auth.schemas import TokenUserPayload
+from models import Role
 from users.schemas import RoleCreate, RoleUpdate, UserCreate
 from users.uow import PermissionUnitOfWork, RoleUnitOfWork, UserUnitOfWork
 from utils.utils import cpu_bound_task
@@ -58,6 +59,10 @@ class RoleService:
         self.uow = uow
         self.permission_service = permission_service
 
+    async def get_roles(self, page: int, size: int) -> list[Role]:
+        async with self.uow:
+            return await self.uow.repository.get_roles(page, size)
+
     async def create_role(self, role: RoleCreate):
         async with self.uow:
             created_role = await self.uow.repository.create_role(role)
@@ -98,3 +103,7 @@ class RoleService:
                     )
             await self.uow.commit()
             return updated_role
+
+    async def count_roles(self) -> int:
+        async with self.uow:
+            return await self.uow.repository.count_roles()

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -30,6 +30,12 @@ class UserRepository:
 class RoleRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def get_roles(self, page: int, size: int) -> list[Role]:
+        result = await self.session.scalars(
+            select(Role).offset((page - 1) * size).limit(size).order_by(Role.name)
+        )
+        return list(result.all())
 
     async def create_role(self, role_create: RoleCreate) -> Optional[Role]:
         stmt = (
@@ -74,6 +80,10 @@ class RoleRepository:
         result = await self.session.execute(stmt)
         await self.session.flush()
         return result.scalar_one_or_none()
+
+    async def count_roles(self) -> int:
+        result = await self.session.execute(select(func.count()).select_from(Role))
+        return result.scalar_one()
 
 
 class PermissionRepository:
