@@ -62,5 +62,14 @@ async def delete_role(
     current_user: TokenUserPayload = Depends(get_user),
 ):
     if helpers.is_authorized(current_user, None):
-        return await role_service.delete_role(role_id)
+        try:
+            return await role_service.delete_role(role_id)
+        except IntegrityError as e:
+            if "asyncpg.exceptions.ForeignKeyViolationError" in str(
+                e.orig
+            ) and "users_role_id_fkey" in str(e.orig):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Cannot delete role because it is assigned to one or more users.",
+                )
     return None
