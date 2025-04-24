@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import insert, select
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -31,6 +31,12 @@ class RoleRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def get_roles(self, page: int, size: int) -> list[Role]:
+        result = await self.session.scalars(
+            select(Role).offset((page - 1) * size).limit(size).order_by(Role.name)
+        )
+        return list(result.all())
+
     async def create_role(self, role_create: RoleCreate) -> Optional[Role]:
         stmt = (
             insert(Role)
@@ -51,6 +57,33 @@ class RoleRepository:
         if values:
             stmt = insert(role_permission).values(values)
             await self.session.execute(stmt)
+
+    async def remove_all_permissions_from_role(self, role_id: int):
+        from models import role_permission
+
+        stmt = delete(role_permission).where(role_permission.c.role_id == role_id)
+        await self.session.execute(stmt)
+        await self.session.flush()
+
+    async def delete_role(self, role_id: int):
+        await self.session.execute(delete(Role).where(Role.id == role_id))
+
+    async def update_role(
+        self, role_id: int, role_update: RoleCreate
+    ) -> Optional[Role]:
+        stmt = (
+            update(Role)
+            .where(Role.id == role_id)
+            .values(**role_update.model_dump(exclude={"permissions"}))
+            .returning(Role)
+        )
+        result = await self.session.execute(stmt)
+        await self.session.flush()
+        return result.scalar_one()
+
+    async def count_roles(self) -> int:
+        result = await self.session.execute(select(func.count()).select_from(Role))
+        return result.scalar_one()
 
 
 class PermissionRepository:

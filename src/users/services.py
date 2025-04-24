@@ -2,7 +2,8 @@ import bcrypt
 from dependency_injector.wiring import Provide, inject
 
 from auth.schemas import TokenUserPayload
-from users.schemas import RoleCreate, UserCreate
+from models import Role
+from users.schemas import RoleCreate, RoleUpdate, UserCreate
 from users.uow import PermissionUnitOfWork, RoleUnitOfWork, UserUnitOfWork
 from utils.utils import cpu_bound_task
 
@@ -56,6 +57,10 @@ class RoleService:
         self.uow = uow
         self.permission_service = permission_service
 
+    async def get_roles(self, page: int, size: int) -> list[Role]:
+        async with self.uow:
+            return await self.uow.repository.get_roles(page, size)
+
     async def create_role(self, role: RoleCreate):
         async with self.uow:
             created_role = await self.uow.repository.create_role(role)
@@ -70,3 +75,28 @@ class RoleService:
                     )
             await self.uow.commit()
             return created_role
+
+    async def delete_role(self, role_id: int):
+        async with self.uow:
+            await self.uow.repository.delete_role(role_id)
+            await self.uow.commit()
+
+    async def update_role(self, role_id: int, role: RoleUpdate):
+        async with self.uow:
+            updated_role = await self.uow.repository.update_role(role_id, role)
+            if role.permissions is not None:
+                all_permissions = await self.permission_service.get_permissions()
+                permissions_to_add = [
+                    p for p in all_permissions if p.name in role.permissions
+                ]
+                await self.uow.repository.remove_all_permissions_from_role(role_id)
+                if permissions_to_add:
+                    await self.uow.repository.add_permissions_to_role(
+                        role_id, [p.id for p in permissions_to_add]
+                    )
+            await self.uow.commit()
+            return updated_role
+
+    async def count_roles(self) -> int:
+        async with self.uow:
+            return await self.uow.repository.count_roles()
