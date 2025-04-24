@@ -45,7 +45,7 @@ class User(BaseEntity):
 role_permission = Table(
     "roles_permissions",
     Base.metadata,
-    Column("role_id", Integer, ForeignKey("roles.id")),
+    Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE")),
     Column("permission_id", Integer, ForeignKey("permissions.id")),
 )
 

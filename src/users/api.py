@@ -52,3 +52,15 @@ async def create_role(
                     detail="Role name already exists.",
                 )
     return None
+
+
+@users_router.delete("/roles/{role_id}")
+@inject
+async def delete_role(
+    role_id: int,
+    role_service: RoleService = Depends(Provide["role_service"]),
+    current_user: TokenUserPayload = Depends(get_user),
+):
+    if helpers.is_authorized(current_user, None):
+        return await role_service.delete_role(role_id)
+    return None

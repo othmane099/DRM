@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import insert, select
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -51,6 +51,9 @@ class RoleRepository:
         if values:
             stmt = insert(role_permission).values(values)
             await self.session.execute(stmt)
+
+    async def delete_role(self, role_id: int):
+        await self.session.execute(delete(Role).where(Role.id == role_id))
 
 
 class PermissionRepository:

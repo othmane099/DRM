@@ -70,3 +70,8 @@ class RoleService:
                     )
             await self.uow.commit()
             return created_role
+
+    async def delete_role(self, role_id: int):
+        async with self.uow:
+            await self.uow.repository.delete_role(role_id)
+            await self.uow.commit()
