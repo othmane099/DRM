@@ -38,15 +38,17 @@ async def get_permissions(
 async def create_role(
     role_create: RoleCreate,
     role_service: RoleService = Depends(Provide["role_service"]),
+    current_user: TokenUserPayload = Depends(get_user),
 ):
-    try:
-        return await role_service.create_role(role_create)
-    except IntegrityError as e:
-        if "asyncpg.exceptions.UniqueViolationError" in str(
-            e.orig
-        ) and "roles_name_key" in str(e.orig):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role name already exists.",
-            )
-        return None
+    if helpers.is_authorized(current_user, None):
+        try:
+            return await role_service.create_role(role_create)
+        except IntegrityError as e:
+            if "asyncpg.exceptions.UniqueViolationError" in str(
+                e.orig
+            ) and "roles_name_key" in str(e.orig):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Role name already exists.",
+                )
+    return None

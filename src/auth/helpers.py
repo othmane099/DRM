@@ -1,10 +1,12 @@
+from typing import Optional
+
 from fastapi import HTTPException
 from starlette import status
 
 from auth.schemas import TokenUserPayload
 
 
-def is_authorized(user: TokenUserPayload, *permissions: str) -> bool:
+def is_authorized(user: TokenUserPayload, *permissions: Optional[str]) -> bool:
     if user.is_superuser or user.is_admin:
         return True
 
