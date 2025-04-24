@@ -79,7 +79,7 @@ class RoleRepository:
         )
         result = await self.session.execute(stmt)
         await self.session.flush()
-        return result.scalar_one_or_none()
+        return result.scalar_one()
 
     async def count_roles(self) -> int:
         result = await self.session.execute(select(func.count()).select_from(Role))

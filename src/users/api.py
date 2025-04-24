@@ -2,7 +2,7 @@ from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from starlette import status
 
 from auth import helpers
@@ -79,7 +79,7 @@ async def create_role(
             ) and "roles_name_key" in str(e.orig):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Role name already exists.",
+                    detail="Role name should be unique",
                 )
     return None
 
@@ -117,6 +117,11 @@ async def update_role(
     if helpers.is_authorized(current_user, None):
         try:
             return await role_service.update_role(role_id, role_update)
+        except NoResultFound:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Role not found.",
+            )
         except IntegrityError as e:
             if "asyncpg.exceptions.UniqueViolationError" in str(
                 e.orig

@@ -1,7 +1,5 @@
 import bcrypt
 from dependency_injector.wiring import Provide, inject
-from fastapi import HTTPException
-from starlette import status
 
 from auth.schemas import TokenUserPayload
 from models import Role
@@ -86,11 +84,6 @@ class RoleService:
     async def update_role(self, role_id: int, role: RoleUpdate):
         async with self.uow:
             updated_role = await self.uow.repository.update_role(role_id, role)
-            if updated_role is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Role not found",
-                )
             if role.permissions is not None:
                 all_permissions = await self.permission_service.get_permissions()
                 permissions_to_add = [
