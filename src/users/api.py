@@ -1,5 +1,7 @@
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
+from starlette import status
 
 from auth import helpers
 from auth.schemas import TokenUserPayload
@@ -20,6 +22,7 @@ async def create_user(
 ):
     if helpers.is_authorized(current_user, CAN_CREATE_USER):
         return await user_service.create_user(current_user, user_create)
+    return None
 
 
 @users_router.get("/permissions")
@@ -36,4 +39,14 @@ async def create_role(
     role_create: RoleCreate,
     role_service: RoleService = Depends(Provide["role_service"]),
 ):
-    return await role_service.create_role(role_create)
+    try:
+        return await role_service.create_role(role_create)
+    except IntegrityError as e:
+        if "asyncpg.exceptions.UniqueViolationError" in str(
+            e.orig
+        ) and "roles_name_key" in str(e.orig):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role name already exists.",
+            )
+        return None

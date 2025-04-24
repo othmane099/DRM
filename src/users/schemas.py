@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, conlist
 
 from models import User
 
@@ -37,4 +37,4 @@ class UserResponse(BaseModel):
 
 class RoleCreate(BaseModel):
     name: str
-    permissions: Optional[list[str]] = None
+    permissions: conlist(str, min_length=1)
