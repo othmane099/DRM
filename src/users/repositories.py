@@ -1,9 +1,15 @@
 from typing import Optional
 
 from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from errors import (
+    ASYNCPG_EXCEPTIONS_FOREIGN_KEY_VIOLATION,
+    ASYNCPG_EXCEPTIONS_UNIQUE_VIOLATION,
+    ErrorType,
+)
 from models import Permission, Role, User
 from users.schemas import RoleCreate
 
@@ -37,15 +43,22 @@ class RoleRepository:
         )
         return list(result.all())
 
-    async def create_role(self, role_create: RoleCreate) -> Optional[Role]:
+    async def create_role(self, role_create: RoleCreate) -> Role | ErrorType:
         stmt = (
             insert(Role)
             .values(**role_create.model_dump(exclude={"permissions"}))
             .returning(Role)
         )
-        result = await self.session.execute(stmt)
-        await self.session.flush()
-        return result.scalar_one_or_none()
+        try:
+            result = await self.session.execute(stmt)
+            await self.session.flush()
+            return result.scalar_one()
+        except IntegrityError as e:
+            if ASYNCPG_EXCEPTIONS_UNIQUE_VIOLATION in str(
+                e.orig
+            ) and "roles_name_key" in str(e.orig):
+                return ErrorType.UNIQUE_VIOLATION
+        return ErrorType.UNKNOWN_ERROR
 
     async def add_permissions_to_role(self, role_id: int, permission_ids: list[int]):
         from models import role_permission
@@ -65,21 +78,38 @@ class RoleRepository:
         await self.session.execute(stmt)
         await self.session.flush()
 
-    async def delete_role(self, role_id: int):
-        await self.session.execute(delete(Role).where(Role.id == role_id))
+    async def delete_role(self, role_id: int) -> Optional[ErrorType]:
+        try:
+            await self.session.execute(delete(Role).where(Role.id == role_id))
+            return None
+        except IntegrityError as e:
+            if ASYNCPG_EXCEPTIONS_FOREIGN_KEY_VIOLATION in str(
+                e.orig
+            ) and "users_role_id_fkey" in str(e.orig):
+                return ErrorType.FOREIGN_KEY_VIOLATION
+        return ErrorType.UNKNOWN_ERROR
 
     async def update_role(
         self, role_id: int, role_update: RoleCreate
-    ) -> Optional[Role]:
+    ) -> Role | ErrorType:
         stmt = (
             update(Role)
             .where(Role.id == role_id)
             .values(**role_update.model_dump(exclude={"permissions"}))
             .returning(Role)
         )
-        result = await self.session.execute(stmt)
-        await self.session.flush()
-        return result.scalar_one()
+        try:
+            result = await self.session.execute(stmt)
+            await self.session.flush()
+            return result.scalar_one()
+        except NoResultFound:
+            return ErrorType.ENTITY_NOT_FOUND
+        except IntegrityError as e:
+            if ASYNCPG_EXCEPTIONS_UNIQUE_VIOLATION in str(
+                e.orig
+            ) and "roles_name_key" in str(e.orig):
+                return ErrorType.UNIQUE_VIOLATION
+        return ErrorType.UNKNOWN_ERROR
 
     async def count_roles(self) -> int:
         result = await self.session.execute(select(func.count()).select_from(Role))

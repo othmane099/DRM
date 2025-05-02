@@ -1,7 +1,10 @@
+from typing import Optional
+
 import bcrypt
 from dependency_injector.wiring import Provide, inject
 
 from auth.schemas import TokenUserPayload
+from errors import Error, ErrorType
 from models import Role
 from users.schemas import RoleCreate, RoleUpdate, UserCreate
 from users.uow import PermissionUnitOfWork, RoleUnitOfWork, UserUnitOfWork
@@ -61,41 +64,68 @@ class RoleService:
         async with self.uow:
             return await self.uow.repository.get_roles(page, size)
 
-    async def create_role(self, role: RoleCreate):
+    async def create_role(self, role: RoleCreate) -> Role | Error:
         async with self.uow:
-            created_role = await self.uow.repository.create_role(role)
-            if role.permissions and created_role:
-                all_permissions = await self.permission_service.get_permissions()
-                permissions_to_add = [
-                    p for p in all_permissions if p.name in role.permissions
-                ]
-                if permissions_to_add:
-                    await self.uow.repository.add_permissions_to_role(
-                        created_role.id, [p.id for p in permissions_to_add]
-                    )
-            await self.uow.commit()
-            return created_role
+            result = await self.uow.repository.create_role(role)
+            if isinstance(result, Role):
+                if role.permissions:
+                    all_permissions = await self.permission_service.get_permissions()
+                    permissions_to_add = [
+                        p for p in all_permissions if p.name in role.permissions
+                    ]
+                    if permissions_to_add:
+                        await self.uow.repository.add_permissions_to_role(
+                            result.id, [p.id for p in permissions_to_add]
+                        )
+                await self.uow.commit()
+                return result
+            elif result == ErrorType.UNIQUE_VIOLATION:
+                return Error(
+                    status_code=409,
+                    message="Role with name: {} already exists".format(role.name),
+                )
+            else:
+                return Error(status_code=500, message=str(result))
 
-    async def delete_role(self, role_id: int):
+    async def delete_role(self, role_id: int) -> Optional[Error]:
         async with self.uow:
-            await self.uow.repository.delete_role(role_id)
-            await self.uow.commit()
+            result = await self.uow.repository.delete_role(role_id)
+            if result is None:
+                await self.uow.commit()
+                return None
+            elif result == ErrorType.FOREIGN_KEY_VIOLATION:
+                return Error(
+                    status_code=409,
+                    message="Cannot delete role because it is assigned to one or more users",
+                )
+            else:
+                return Error(status_code=500, message=str(result))
 
-    async def update_role(self, role_id: int, role: RoleUpdate):
+    async def update_role(self, role_id: int, role: RoleUpdate) -> Role | Error:
         async with self.uow:
-            updated_role = await self.uow.repository.update_role(role_id, role)
-            if role.permissions is not None:
-                all_permissions = await self.permission_service.get_permissions()
-                permissions_to_add = [
-                    p for p in all_permissions if p.name in role.permissions
-                ]
-                await self.uow.repository.remove_all_permissions_from_role(role_id)
-                if permissions_to_add:
-                    await self.uow.repository.add_permissions_to_role(
-                        role_id, [p.id for p in permissions_to_add]
-                    )
-            await self.uow.commit()
-            return updated_role
+            result = await self.uow.repository.update_role(role_id, role)
+            if isinstance(result, Role):
+                if role.permissions is not None:
+                    all_permissions = await self.permission_service.get_permissions()
+                    permissions_to_add = [
+                        p for p in all_permissions if p.name in role.permissions
+                    ]
+                    await self.uow.repository.remove_all_permissions_from_role(role_id)
+                    if permissions_to_add:
+                        await self.uow.repository.add_permissions_to_role(
+                            role_id, [p.id for p in permissions_to_add]
+                        )
+                await self.uow.commit()
+                return result
+            elif result == ErrorType.UNIQUE_VIOLATION:
+                return Error(
+                    status_code=409,
+                    message="Role with name: {} already exists".format(role.name),
+                )
+            elif result == ErrorType.ENTITY_NOT_FOUND:
+                return Error(status_code=404, message="Role not found")
+            else:
+                return Error(status_code=500, message=str(result))
 
     async def count_roles(self) -> int:
         async with self.uow:

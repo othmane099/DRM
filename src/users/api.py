@@ -2,12 +2,13 @@ from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.exc import IntegrityError, NoResultFound
 from starlette import status
+from starlette.responses import Response
 
 from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
+from models import Role
 from users.permissions import CAN_CREATE_USER
 from users.schemas import (
     RoleCreate,
@@ -70,18 +71,13 @@ async def create_role(
     role_service: RoleService = Depends(Provide["role_service"]),
     current_user: TokenUserPayload = Depends(get_user),
 ):
-    if helpers.is_authorized(current_user, None):
-        try:
-            return await role_service.create_role(role_create)
-        except IntegrityError as e:
-            if "asyncpg.exceptions.UniqueViolationError" in str(
-                e.orig
-            ) and "roles_name_key" in str(e.orig):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Role name should be unique",
-                )
-    return None
+    helpers.is_authorized(current_user, None)
+    result = await role_service.create_role(role_create)
+    try:
+        assert isinstance(result, Role)
+        return result
+    except AssertionError:
+        raise HTTPException(status_code=result.status_code, detail=result.message)
 
 
 @users_router.delete("/roles/{role_id}")
@@ -91,18 +87,13 @@ async def delete_role(
     role_service: RoleService = Depends(Provide["role_service"]),
     current_user: TokenUserPayload = Depends(get_user),
 ):
-    if helpers.is_authorized(current_user, None):
-        try:
-            return await role_service.delete_role(role_id)
-        except IntegrityError as e:
-            if "asyncpg.exceptions.ForeignKeyViolationError" in str(
-                e.orig
-            ) and "users_role_id_fkey" in str(e.orig):
-                raise HTTPException(
-                    status_code=409,
-                    detail="Cannot delete role because it is assigned to one or more users.",
-                )
-    return None
+    helpers.is_authorized(current_user, None)
+    result = await role_service.delete_role(role_id)
+    try:
+        assert result is None
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except AssertionError:
+        raise HTTPException(status_code=result.status_code, detail=result.message)
 
 
 @users_router.put("/roles/{role_id}")
@@ -113,21 +104,10 @@ async def update_role(
     role_service: RoleService = Depends(Provide["role_service"]),
     current_user: TokenUserPayload = Depends(get_user),
 ):
-
-    if helpers.is_authorized(current_user, None):
-        try:
-            return await role_service.update_role(role_id, role_update)
-        except NoResultFound:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Role not found.",
-            )
-        except IntegrityError as e:
-            if "asyncpg.exceptions.UniqueViolationError" in str(
-                e.orig
-            ) and "roles_name_key" in str(e.orig):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Role name already exists.",
-                )
-    return None
+    helpers.is_authorized(current_user, None)
+    result = await role_service.update_role(role_id, role_update)
+    try:
+        assert isinstance(result, Role)
+        return result
+    except AssertionError:
+        raise HTTPException(status_code=result.status_code, detail=result.message)
