@@ -3,9 +3,8 @@ from typing import Optional
 import bcrypt
 from dependency_injector.wiring import Provide, inject
 
-from auth.schemas import TokenUserPayload
 from errors import Error, ErrorType
-from models import Role
+from models import Role, User
 from users.schemas import RoleCreate, RoleUpdate, UserCreate
 from users.uow import PermissionUnitOfWork, RoleUnitOfWork, UserUnitOfWork
 from utils.utils import cpu_bound_task
@@ -17,9 +16,7 @@ class UserService:
     def __init__(self, uow: UserUnitOfWork = Provide["user_uow"]):
         self.uow = uow
 
-    async def create_user(
-        self, current_user: TokenUserPayload, user_create: UserCreate
-    ):
+    async def create_user(self, user_create: UserCreate) -> User | Error:
         user_create.password = (
             await cpu_bound_task(
                 bcrypt.hashpw, user_create.password.encode(), bcrypt.gensalt()
@@ -28,9 +25,19 @@ class UserService:
         data = user_create.model_dump()
         data["is_active"] = True
         async with self.uow:
-            created_user = await self.uow.repository.create_user(data)
-            await self.uow.commit()
-            return created_user
+            result = await self.uow.repository.create_user(data)
+            if isinstance(result, User):
+                await self.uow.commit()
+                return result
+            elif result == ErrorType.UNIQUE_VIOLATION:
+                return Error(
+                    status_code=409,
+                    message="User with email: {} already exists".format(
+                        user_create.email
+                    ),
+                )
+            else:
+                return Error(status_code=500, message=str(result))
 
     async def get_user_by_email(self, email: str):
         async with self.uow:
