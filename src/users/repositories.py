@@ -11,7 +11,7 @@ from errors import (
     ErrorType,
 )
 from models import Permission, Role, User
-from users.schemas import RoleCreate
+from users.schemas import RoleCreate, UserUpdate
 
 
 class UserRepository:
@@ -23,6 +23,26 @@ class UserRepository:
         try:
             result = await self.session.execute(stmt)
             return result.scalar_one()
+        except IntegrityError as e:
+            if ASYNCPG_EXCEPTIONS_UNIQUE_VIOLATION in str(
+                e.orig
+            ) and "users_email_key" in str(e.orig):
+                return ErrorType.UNIQUE_VIOLATION
+        return ErrorType.UNKNOWN_ERROR
+
+    async def update_user(self, user_id: int, user_update: UserUpdate) -> User | ErrorType:
+        stmt = (
+            update(User)
+            .where(User.id == user_id)
+            .values(**user_update.model_dump())
+            .returning(User)
+        )
+        try:
+            result = await self.session.execute(stmt)
+            await self.session.flush()
+            return result.scalar_one()
+        except NoResultFound:
+            return ErrorType.ENTITY_NOT_FOUND
         except IntegrityError as e:
             if ASYNCPG_EXCEPTIONS_UNIQUE_VIOLATION in str(
                 e.orig

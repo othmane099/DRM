@@ -39,6 +39,22 @@ class UserService:
             else:
                 return Error(status_code=500, message=str(result))
 
+    async def update_user(self, user_id: int, user_update: UserCreate) -> User | Error:
+        async with self.uow:
+            result = await self.uow.repository.update_user(user_id, user_update)
+            if isinstance(result, User):
+                await self.uow.commit()
+                return result
+            elif result == ErrorType.UNIQUE_VIOLATION:
+                return Error(
+                    status_code=409,
+                    message="User with email: {} already exists".format(
+                        user_update.email
+                    ),
+                )
+            else:
+                return Error(status_code=500, message=str(result))
+
     async def get_user_by_email(self, email: str):
         async with self.uow:
             user = await self.uow.repository.get_user_by_email(email)
@@ -60,9 +76,9 @@ class RoleService:
 
     @inject
     def __init__(
-        self,
-        uow: RoleUnitOfWork = Provide["role_uow"],
-        permission_service: PermissionService = Provide["permission_service"],
+            self,
+            uow: RoleUnitOfWork = Provide["role_uow"],
+            permission_service: PermissionService = Provide["permission_service"],
     ):
         self.uow = uow
         self.permission_service = permission_service

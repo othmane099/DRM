@@ -9,13 +9,13 @@ from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
 from models import Role, User
-from users.permissions import CAN_CREATE_USER
+from users.permissions import CAN_CREATE_USER, CAN_EDIT_USER
 from users.schemas import (
     RoleCreate,
     RolePaginationResponse,
     RoleUpdate,
     UserCreate,
-    UserResponse,
+    UserResponse, UserUpdate,
 )
 from users.services import PermissionService, RoleService, UserService
 from utils.schemas import PaginationParams
@@ -32,6 +32,23 @@ async def create_user(
 ):
     helpers.is_authorized(current_user, CAN_CREATE_USER)
     result = await user_service.create_user(user_create)
+    try:
+        assert isinstance(result, User)
+        return result
+    except AssertionError:
+        raise HTTPException(status_code=result.status_code, detail=result.message)
+
+
+@users_router.put("/{user_id}", response_model=UserResponse)
+@inject
+async def update_user(
+    user_id: int,
+    user_update: UserUpdate,
+    user_service: UserService = Depends(Provide["user_service"]),
+    current_user: TokenUserPayload = Depends(get_user),
+):
+    helpers.is_authorized(current_user, CAN_EDIT_USER)
+    result = await user_service.update_user(user_id, user_update)
     try:
         assert isinstance(result, User)
         return result
