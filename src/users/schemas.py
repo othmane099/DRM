@@ -16,8 +16,12 @@ class UserCreate(BaseModel):
     role_id: int
 
 
-def to_User(user: BaseModel):
-    return User(**user.model_dump())
+class UserUpdate(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone_number: Optional[str] = None
+    role_id: int
 
 
 class UserResponse(BaseModel):
