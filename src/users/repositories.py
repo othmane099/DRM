@@ -18,10 +18,17 @@ class UserRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_user(self, data: dict) -> Optional[User]:
+    async def create_user(self, data: dict) -> User | ErrorType:
         stmt = insert(User).values(**data).returning(User)
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        try:
+            result = await self.session.execute(stmt)
+            return result.scalar_one()
+        except IntegrityError as e:
+            if ASYNCPG_EXCEPTIONS_UNIQUE_VIOLATION in str(
+                e.orig
+            ) and "users_email_key" in str(e.orig):
+                return ErrorType.UNIQUE_VIOLATION
+        return ErrorType.UNKNOWN_ERROR
 
     async def get_user_by_email(self, email: str) -> Optional[User]:
         stmt = (

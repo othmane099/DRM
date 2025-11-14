@@ -8,7 +8,7 @@ from starlette.responses import Response
 from auth import helpers
 from auth.schemas import TokenUserPayload
 from auth.security import get_user
-from models import Role
+from models import Role, User
 from users.permissions import CAN_CREATE_USER
 from users.schemas import (
     RoleCreate,
@@ -30,9 +30,13 @@ async def create_user(
     user_service: UserService = Depends(Provide["user_service"]),
     current_user: TokenUserPayload = Depends(get_user),
 ):
-    if helpers.is_authorized(current_user, CAN_CREATE_USER):
-        return await user_service.create_user(current_user, user_create)
-    return None
+    helpers.is_authorized(current_user, CAN_CREATE_USER)
+    result = await user_service.create_user(user_create)
+    try:
+        assert isinstance(result, User)
+        return result
+    except AssertionError:
+        raise HTTPException(status_code=result.status_code, detail=result.message)
 
 
 @users_router.get("/permissions")
